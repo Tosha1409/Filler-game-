@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<title>Filler Game</title>
+<link rel="stylesheet" href="main.css">
+</head>
+
+<script>
+//initialization of variables
+var colours = ["Black", "Blue", "Red", "Green", "Yellow", "Maggenta", "Grey"]
+var field = [], tempfield = [];   
+var width = 60;
+var height = 40;
+var player1score = 0, player2score = 0, movescore =0;
+var unusedcolour = 255;
+var winningamount = 0.2;
+
+//initialization of game
+function game() {
+ fillfield();
+ showfield();
+ showinterface();
+}
+
+//creating random field
+function fillfield(){
+	for(var i = 0; i < height; i++) {
+		field[i] = [];
+		for(var j = 0; j < width; j++){
+			field[i][j]= Math.floor(Math.random()*colours.length);
+    }
+  }
+}
+
+//visualisation of game interface
+function showinterface(){
+  var fieldhtml ="<table><tr> \n"
+  for(var i = 0; i < colours.length ; i++) {        
+      fieldhtml += "<td bgcolor=\"" + colours[i] +"\" onclick=\"clicked("+i+");\"></td> \n"      
+  }
+  fieldhtml += "</tr></table> \n"
+  document.getElementById("gameselect").innerHTML = fieldhtml;
+}
+
+//visualisation of game field        
+function showfield(){
+  var fieldhtml ="<table> \n"
+  for(var i = 0; i < height; i++) {        
+    fieldhtml = fieldhtml + "<tr> \n"
+    for(var j = 0; j < width; j++){
+      fieldhtml += "<td bgcolor=\"" + colours[field[i][j]] +"\"></td> \n"      
+	    }
+    fieldhtml += " </tr> \n"       
+  }
+  fieldhtml += "</table> \n"
+  document.getElementById("gamefield").innerHTML = fieldhtml;
+}
+
+//making copy of field
+function makefieldcopy(){
+  tempfield = [];  
+	for(var i = 0; i < height; i++) {
+		tempfield[i] = [];
+		for(var j = 0; j < width; j++){
+			tempfield[i][j] = field[i][j];
+    }
+  }
+}
+
+//full action on player move, including filling the field and points counting
+function fullmove(x,y,currentcolour, newcolour, currentfield){
+  playermove(x,y,currentcolour,newcolour, currentfield);
+  //next 3 lines are a bit controversial solution, but other one would require making clone of array, and this is is pretty long in JS.
+  playermove(x,y,newcolour,unusedcolour, currentfield);
+  movescore=0;
+  playermove(x,y,unusedcolour,newcolour, currentfield);
+  return movescore;
+}
+
+//filling field according player move
+function playermove(x,y,currentcolour,newcolour,currentfield){
+  if (currentfield[x][y]==currentcolour){
+    currentfield[x][y]=newcolour;
+    movescore++;
+    if (x-1>=0){playermove(x-1,y,currentcolour,newcolour, currentfield);}
+    if (x+1<height){playermove(x+1,y,currentcolour,newcolour, currentfield);}
+    if (y+1<width){playermove(x,y+1,currentcolour,newcolour, currentfield);}
+    if (y-1>=0){playermove(x,y-1,currentcolour,newcolour, currentfield);}
+    }
+}
+
+//checking who is winner
+function checkwinner(){
+  var winningscore=width*height*winningamount;
+  if (winningscore<=player1score || winningscore<=player2score){
+    if (player1score>=player2score){
+    window.alert("Game is ended and winner is Player 1");
+      }
+    else{
+      window.alert("Game is ended and winner is Player 2");
+      }
+     window.location.reload(true);
+    }
+}
+
+//shoosing and making best move for 2nd player
+function aimove(){
+    var bestmovecolour=0;
+    var bestscore=0;
+    for (var currentcolour = 0; currentcolour < colours.length; currentcolour++){
+      if (field[0][width-1] != currentcolour){
+        makefieldcopy();
+        player2score=fullmove(0,width-1,field[0][width-1],currentcolour,tempfield);
+      }
+      if (player2score>bestscore){
+        bestmovecolour=currentcolour;
+        bestscore=player2score;
+      }
+    }
+    return (fullmove(0,width-1,field[0][width-1],bestmovecolour,field));
+}
+
+//action if colour selected
+function clicked(x){
+  if (x != field[height-1][0]){
+    player1score=fullmove(height-1,0,field[height-1][0],x,field);
+    document.getElementById("player1").innerHTML = "You - "+player1score;
+    player2score=aimove();
+    document.getElementById("player2").innerHTML = "PC - "+player2score;
+    showfield();
+    checkwinner();  
+  }
+}
+</script> 
+
+<body onload="game();">
+<div id="gamefield"></div>
+<div id="gameselect"></div>
+<div id="player1"></div>
+<div id="player2"></div>
+</body>
+</html> 
