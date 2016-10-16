@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<title>Filler Game</title>
+<link rel="stylesheet" href="main.css">
+</head>
+
+<script>
+
+function filler() {
+//initialization of variables, would be possible to have different constructor, but probably doesnt make any sense since there would be hardly used few instances of object and amount of paramentrs would be too big.
+  this.colours = ["Black", "Blue", "Red", "Green", "Yellow", "Maggenta", "Grey"];
+  this.field = []; 
+  this.tempfield = [];
+  this.width = 60;
+  this.height = 40;
+  this.player1score = 0;
+  this.player2score = 0, 
+  this.movescore =0;
+  this.unusedcolour = 255;
+  this.winningamount = 0.2;
+}
+
+//creating random field
+filler.prototype.fillfield = function() {
+	for(var i = 0; i < this.height; i++) {
+		this.field[i] = [];
+		for(var j = 0; j < this.width; j++){
+			this.field[i][j]= Math.floor(Math.random()*this.colours.length);
+    }
+  }
+}
+
+//visualisation of game interface
+filler.prototype.showinterface = function() {
+  var fieldhtml ="<table><tr> \n"
+  for(var i = 0; i < this.colours.length ; i++) {        
+      fieldhtml += "<td bgcolor=\"" + this.colours[i] +"\" onclick=\"i.clicked("+i+");\"></td> \n"      
+  }
+  fieldhtml += "</tr></table> \n"
+  document.getElementById("gameselect").innerHTML = fieldhtml;
+}
+
+//visualisation of game field        
+filler.prototype.showfield = function() {
+  var fieldhtml ="<table> \n"
+  for(var i = 0; i < this.height; i++) {        
+    fieldhtml = fieldhtml + "<tr> \n"
+    for(var j = 0; j < this.width; j++){
+      fieldhtml += "<td bgcolor=\"" + this.colours[this.field[i][j]] +"\"></td> \n"      
+	    }
+    fieldhtml += " </tr> \n"       
+  }
+  fieldhtml += "</table> \n"
+  document.getElementById("gamefield").innerHTML = fieldhtml;
+}
+
+//making copy of field
+filler.prototype.makefieldcopy = function(){
+  this.tempfield = [];  
+	for(var i = 0; i < this.height; i++) {
+		this.tempfield[i] = [];
+		for(var j = 0; j < this.width; j++){
+			this.tempfield[i][j] = this.field[i][j];
+    }
+  }
+}
+
+//full action on player move, including filling the field and points counting
+filler.prototype.fullmove = function(x,y,currentcolour, newcolour, currentfield){
+  this.playermove(x,y,currentcolour,newcolour, currentfield);
+  //next 3 lines are a bit controversial solution, but other one would require making clone of array, and this is is pretty long in JS.
+  this.playermove(x,y,newcolour,this.unusedcolour, currentfield);
+  this.movescore=0;
+  this.playermove(x,y,this.unusedcolour,newcolour, currentfield);
+  return this.movescore;
+}
+
+//filling field according player move
+filler.prototype.playermove = function(x,y,currentcolour,newcolour,currentfield){
+  if (currentfield[x][y]==currentcolour){
+    currentfield[x][y]=newcolour;
+    this.movescore++;
+    if (x-1>=0){this.playermove(x-1,y,currentcolour,newcolour, currentfield);}
+    if (x+1<this.height){this.playermove(x+1,y,currentcolour,newcolour, currentfield);}
+    if (y+1<this.width){this.playermove(x,y+1,currentcolour,newcolour, currentfield);}
+    if (y-1>=0){this.playermove(x,y-1,currentcolour,newcolour, currentfield);}
+    }
+}
+
+//checking who is winner
+filler.prototype.checkwinner = function(){
+  var winningscore=this.width*this.height*this.winningamount;
+  if (winningscore<=this.player1score || winningscore<=this.player2score){
+    if (this.player1score>=this.player2score){
+    window.alert("Game is ended and winner is Player 1");
+      }
+    else{
+      window.alert("Game is ended and winner is Player 2");
+      }
+     window.location.reload(true);
+    }
+}
+
+//shoosing and making best move for 2nd player
+filler.prototype.aimove = function(){
+    var bestmovecolour=0;
+    var bestscore=0;
+    for (var currentcolour = 0; currentcolour < this.colours.length; currentcolour++){
+      if (this.field[0][this.width-1] != currentcolour){
+        this.makefieldcopy();
+        this.player2score=this.fullmove(0,this.width-1,this.field[0][this.width-1],currentcolour,this.tempfield);
+      }
+      if (this.player2score>bestscore){
+        bestmovecolour=currentcolour;
+        bestscore=this.player2score;
+      }
+    }
+    return (this.fullmove(0,this.width-1,this.field[0][this.width-1],bestmovecolour,this.field));
+}
+
+//action if colour selected
+filler.prototype.clicked = function(x){
+  if (x != this.field[this.height-1][0]){
+    this.player1score=this.fullmove(this.height-1,0,this.field[this.height-1][0],x,this.field);
+    document.getElementById("player1").innerHTML = "You - "+this.player1score; 
+    this.player2score=this.aimove();
+    document.getElementById("player2").innerHTML = "PC - "+this.player2score;
+    this.showfield();
+    this.checkwinner();  
+  }
+}
+
+var i = new filler();
+
+//initialization of game
+function game() {
+  i.fillfield();
+  i.showfield();
+  i.showinterface();
+};
+</script> 
+
+<body onload="game();">
+<div id="gamefield"></div>
+<div id="gameselect"></div>
+<div id="player1"></div>
+<div id="player2"></div>
+</body>
+</html> 
