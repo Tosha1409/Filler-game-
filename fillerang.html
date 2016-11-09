@@ -125,10 +125,10 @@ $scope.checkwinner = function(){
   var winningscore=$scope.filler.width*$scope.filler.height*$scope.filler.winningamount;
   if (winningscore<=$scope.filler.player1score || winningscore<=$scope.filler.player2score){
     if ($scope.filler.player1score>=$scope.filler.player2score){
-    $window.alert("Game is ended and winner is Player 1");
+    window.alert("Game is ended and winner is Player 1");
       }
     else{
-      $window.alert("Game is ended and winner is Player 2");
+      window.alert("Game is ended and winner is Player 2");
       }
      window.location.reload(true);
     }
