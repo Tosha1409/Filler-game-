@@ -7,12 +7,12 @@
 </head>
 <body>
 
-<div ng-app>
+<div ng-app="fillergame">
     <div ng-controller="fillerCtrl">
         
         <div id="gamefield" data-ng-init="fillfield()"><table>
-        <tr data-ng-repeat="points in filler.field"> 
-        <td data-ng-repeat="z in points track by $index" style="background: {{filler.colours[z]}}">
+        <tr data-ng-repeat="points in field"> 
+        <td data-ng-repeat="z in points track by $index" style="background: {{colours[z]}}">
         </td>
         </tr>
         </table>
@@ -20,14 +20,14 @@
 
         <div id="gameselect">
         <table><tr>
-        <td ng-repeat="colour in filler.colours" style="background: {{colour}}" ng-click="clicked($index);"></td>
+        <td ng-repeat="colour in colours" style="background: {{colour}}" ng-click="clicked($index);"></td>
         </tr><table>
         </div>
 
     </div>
 
-    <div id="player1">Your score - {{ filler.player1score }} </div>
-    <div id="player2">PC score - {{ filler.player2score }} </div>
+    <div id="player1">Your score - {{ player1score }} </div>
+    <div id="player2">PC score - {{ player2score }} </div>
 
 </div>
 
@@ -35,104 +35,106 @@
 </html> 
 
 <script>
-function fillerCtrl($scope) {
-//initialization of variables, would be possible to have different constructor, but probably doesnt make any sense since there would be hardly used few instances of object and amount of paramentrs would be too big.
-  $scope.filler = {  
-  colours : ["Black", "Blue", "Red", "Green", "Yellow", "Maggenta", "Grey"],
-  field : [],
-  tempfield : [],
-  width : 60,
-  height : 40,
-  player1score : 0,
-  player2score : 0, 
-  movescore : 0,
-  unusedcolour : 255,
-  winningamount : 0.2
-};
+(function(angular) {
+'use strict';
+var app = angular.module('fillergame', []);
+var tempfield = [];
+var width = 60;
+var height = 40;
+var movescore = 0;
+var unusedcolour = 255;
+var winningamount = 0.2;
 
+app.controller('fillerCtrl', ['$scope', function($scope) {
+$scope.player1score = 0; 
+$scope.player2score = 0; 
+$scope.field = []; 
+$scope.colours = ["Black", "Blue", "Red", "Green", "Yellow", "Maggenta", "Grey"]; 
 
-//creating random field
-$scope.fillfield = function() {
-	for(var i = 0; i < $scope.filler.height; i++) {
-		$scope.filler.field[i] = [];
-		for(var j = 0; j < $scope.filler.width; j++){
-			$scope.filler.field[i][j]= Math.floor(Math.random()*$scope.filler.colours.length);
+//making copy of field
+function makefieldcopy(){
+  tempfield = [];  
+	for(var i = 0; i < height; i++) {
+		tempfield[i] = [];
+		for(var j = 0; j < width; j++){
+			tempfield[i][j] = $scope.field[i][j];
     }
   }
 };
 
-//making copy of field
-$scope.makefieldcopy = function(){
-  $scope.filler.tempfield = [];  
-	for(var i = 0; i < $scope.filler.height; i++) {
-		$scope.filler.tempfield[i] = [];
-		for(var j = 0; j < $scope.filler.width; j++){
-			$scope.filler.tempfield[i][j] = $scope.filler.field[i][j];
+//full action on player move, including filling the field and points counting
+function fullmove (x,y,currentcolour, newcolour, currentfield){
+  playermove(x,y,currentcolour,newcolour, currentfield);
+  //next 3 lines are a bit controversial solution, but other one would require making clone of array, and $scope is is pretty long in JS.
+  playermove(x,y,newcolour,unusedcolour, currentfield);
+  movescore=0;
+  playermove(x,y,unusedcolour,newcolour, currentfield);
+  return movescore;
+};
+
+//filling field according player move
+function playermove (x,y,currentcolour,newcolour,currentfield){
+  if (currentfield[x][y]==currentcolour){
+    currentfield[x][y]=newcolour;
+    movescore++;
+    if (x-1>=0){playermove(x-1,y,currentcolour,newcolour, currentfield);}
+    if (x+1<height){playermove(x+1,y,currentcolour,newcolour, currentfield);}
+    if (y+1<width){playermove(x,y+1,currentcolour,newcolour, currentfield);}
+    if (y-1>=0){playermove(x,y-1,currentcolour,newcolour, currentfield);}
+  }
+};
+
+//shoosing and making best move for 2nd player
+function aimove() {
+    var bestmovecolour=0;
+    var bestscore=0;
+    for (var currentcolour = 0; currentcolour < $scope.colours.length; currentcolour++){
+      if ($scope.field[0][width-1] != currentcolour){
+        makefieldcopy();
+        $scope.player2score=fullmove(0,width-1,$scope.field[0][width-1],currentcolour,tempfield);
+      }
+      if ($scope.player2score>bestscore){
+        bestmovecolour=currentcolour;
+        bestscore=$scope.player2score;
+      }
+    }
+    return (fullmove(0,width-1,$scope.field[0][width-1],bestmovecolour,$scope.field));
+};
+
+//checking who is winner
+function checkwinner(){
+  var winningscore=width*height*winningamount;  
+  if (winningscore<=$scope.player1score || winningscore<=$scope.player2score){
+    if ($scope.player1score>=$scope.player2score){
+      window.alert("Game is ended and winner is Player 1");
+    }
+    else{
+      window.alert("Game is ended and winner is Player 2");
+    }
+    window.location.reload(true);
+  }
+};
+
+//creating random field
+$scope.fillfield = function() {
+	for(var i = 0; i < height; i++) {
+		$scope.field[i] = [];
+		for(var j = 0; j < width; j++){
+			$scope.field[i][j]= Math.floor(Math.random()*$scope.colours.length);
     }
   }
 };
 
 //action if colour selected
 $scope.clicked = function(x){
-  if (x != $scope.filler.field[$scope.filler.height-1][0]){
-    $scope.filler.player1score=$scope.fullmove($scope.filler.height-1,0,$scope.filler.field[$scope.filler.height-1][0],x,$scope.filler.field);
-    $scope.filler.player2score=$scope.aimove();
-    $scope.checkwinner();  
+  if (x != $scope.field[height-1][0]){
+    $scope.player1score=fullmove(height-1,0,$scope.field[height-1][0],x,$scope.field);
+    $scope.player2score=aimove();
+    checkwinner();  
   }
 };
 
-//full action on player move, including filling the field and points counting
-$scope.fullmove = function(x,y,currentcolour, newcolour, currentfield){
-  $scope.playermove(x,y,currentcolour,newcolour, currentfield);
-  //next 3 lines are a bit controversial solution, but other one would require making clone of array, and $scope is is pretty long in JS.
-  $scope.playermove(x,y,newcolour,$scope.filler.unusedcolour, currentfield);
-  $scope.filler.movescore=0;
-  $scope.playermove(x,y,$scope.filler.unusedcolour,newcolour, currentfield);
-  return $scope.filler.movescore;
-};
+}]);
 
-//filling field according player move
-$scope.playermove = function(x,y,currentcolour,newcolour,currentfield){
-  if (currentfield[x][y]==currentcolour){
-    currentfield[x][y]=newcolour;
-    $scope.filler.movescore++;
-    if (x-1>=0){$scope.playermove(x-1,y,currentcolour,newcolour, currentfield);}
-    if (x+1<$scope.filler.height){$scope.playermove(x+1,y,currentcolour,newcolour, currentfield);}
-    if (y+1<$scope.filler.width){$scope.playermove(x,y+1,currentcolour,newcolour, currentfield);}
-    if (y-1>=0){$scope.playermove(x,y-1,currentcolour,newcolour, currentfield);}
-    }
-};
-
-//shoosing and making best move for 2nd player
-$scope.aimove = function(){
-    var bestmovecolour=0;
-    var bestscore=0;
-    for (var currentcolour = 0; currentcolour < $scope.filler.colours.length; currentcolour++){
-      if ($scope.filler.field[0][$scope.filler.width-1] != currentcolour){
-        $scope.makefieldcopy();
-        $scope.filler.player2score=$scope.fullmove(0,$scope.filler.width-1,$scope.filler.field[0][$scope.filler.width-1],currentcolour,$scope.filler.tempfield);
-      }
-      if ($scope.filler.player2score>bestscore){
-        bestmovecolour=currentcolour;
-        bestscore=$scope.filler.player2score;
-      }
-    }
-    return ($scope.fullmove(0,$scope.filler.width-1,$scope.filler.field[0][$scope.filler.width-1],bestmovecolour,$scope.filler.field));
-};
-
-//checking who is winner
-$scope.checkwinner = function(){
-  var winningscore=$scope.filler.width*$scope.filler.height*$scope.filler.winningamount;
-  if (winningscore<=$scope.filler.player1score || winningscore<=$scope.filler.player2score){
-    if ($scope.filler.player1score>=$scope.filler.player2score){
-    window.alert("Game is ended and winner is Player 1");
-      }
-    else{
-      window.alert("Game is ended and winner is Player 2");
-      }
-     window.location.reload(true);
-    }
-};
-
-}
+})(window.angular);
 </script> 
